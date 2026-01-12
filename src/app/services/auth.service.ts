@@ -1,0 +1,75 @@
+import { Injectable } from '@angular/core';
+import { MsalService } from '@azure/msal-angular';
+import { AuthenticationResult } from '@azure/msal-browser';
+import { BehaviorSubject, Observable } from 'rxjs';
+import { filter } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
+
+@Injectable({
+    providedIn: 'root'
+})
+export class AuthService {
+    private loggedIn = new BehaviorSubject<boolean>(false);
+    public loggedIn$ = this.loggedIn.asObservable();
+
+    constructor(private authService: MsalService) {
+        this.checkAccount();
+
+        // Subscribe to account changes
+        this.authService.handleRedirectObservable().subscribe({
+            next: (result: AuthenticationResult) => {
+                if (result) {
+                    this.authService.instance.setActiveAccount(result.account);
+                    this.checkAccount();
+                }
+            },
+            error: (error) => console.error(error)
+        });
+    }
+
+    checkAccount() {
+        const activeAccount = this.authService.instance.getActiveAccount();
+        this.loggedIn.next(!!activeAccount);
+    }
+
+    login() {
+        this.authService.loginRedirect({
+            scopes: environment.apiConfig.scopes
+        });
+    }
+
+    logout() {
+        this.authService.logoutRedirect({
+            postLogoutRedirectUri: "/"
+        });
+        this.loggedIn.next(false);
+    }
+
+    getToken(): Observable<string> {
+        // You might need to implement silent token acquisition here if needed for interceptors
+        // But MsalInterceptor handles this mostly automatically.
+        // This is a placeholder if manual token retrieval is needed.
+        return new Observable<string>(observer => {
+            const account = this.authService.instance.getActiveAccount();
+            if (account) {
+                this.authService.acquireTokenSilent({
+                    account: account,
+                    scopes: environment.apiConfig.scopes
+                }).subscribe({
+                    next: result => {
+                        observer.next(result.accessToken);
+                        observer.complete();
+                    },
+                    error: error => observer.error(error)
+                });
+            } else {
+                observer.error('No active account');
+            }
+        });
+    }
+
+    getUserName(): string {
+        const account = this.authService.instance.getActiveAccount();
+        return account ? account.name || 'User' : 'User';
+    }
+}

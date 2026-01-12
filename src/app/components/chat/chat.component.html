@@ -1,0 +1,47 @@
+<div class="chat-layout">
+    <div class="sidebar">
+        <div class="user-profile">
+            <div class="avatar">{{ userName.charAt(0) }}</div>
+            <div class="user-info">
+                <h3>{{ userName }}</h3>
+                <span class="status">Online</span>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="logout-btn" (click)="logout()">
+                Sign Out
+            </button>
+        </div>
+    </div>
+
+    <div class="chat-container">
+        <div class="messages-area" #scrollContainer>
+            <div *ngFor="let msg of messages"
+                [ngClass]="{'message-wrapper-user': msg.sender === 'user', 'message-wrapper-bot': msg.sender === 'bot'}">
+                <div class="message" [ngClass]="msg.sender">
+                    <div class="msg-content">{{ msg.text }}</div>
+                    <div class="msg-time">{{ msg.timestamp | date:'shortTime' }}</div>
+                </div>
+            </div>
+            <div *ngIf="isLoading" class="message-wrapper-bot">
+                <div class="message bot typing">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="input-wrapper">
+                <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type your message here..."
+                    type="text" [disabled]="isLoading">
+                <button class="send-btn" (click)="sendMessage()" [disabled]="!newMessage.trim() || isLoading">
+                    <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="22" y1="2" x2="11" y2="13"></line>
+                        <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
