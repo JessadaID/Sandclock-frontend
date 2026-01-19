@@ -37,12 +37,12 @@ const isIE = window.navigator.userAgent.indexOf('MSIE ') > -1 || window.navigato
         storeAuthStateInCookie: isIE,
       }
     }), {
-      interactionType: InteractionType.Redirect,
+      interactionType: InteractionType.Popup,
       authRequest: {
         scopes: environment.apiConfig.m365_scopes
       }
     }, {
-      interactionType: InteractionType.Redirect,
+      interactionType: InteractionType.Popup,
       protectedResourceMap: new Map([
         [environment.apiConfig.uri, environment.apiConfig.m365_scopes]
       ])
@@ -56,7 +56,7 @@ const isIE = window.navigator.userAgent.indexOf('MSIE ') > -1 || window.navigato
     },
     MsalGuard
   ],
-  bootstrap: [AppComponent, MsalRedirectComponent]
+  bootstrap: [AppComponent]
 })
 export class AppModule { }
 

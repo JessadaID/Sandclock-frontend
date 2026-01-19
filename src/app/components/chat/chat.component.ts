@@ -21,6 +21,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     newMessage: string = '';
     isLoading: boolean = false;
     userName: string = '';
+    currentView: 'welcome' | 'results' = 'welcome';
+    currentActionTitle: string = '';
+    azureToken: string = '';
+    m365Token: string = '';
+    showTokenPanel: boolean = false;
 
     constructor(
         private chatService: ChatService,
@@ -31,7 +36,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         // todayWork: "Fetch all my active work items (including Tasks, and Bugs) and Pull Requests that were created or updated today across all projects in Azure DevOps. Focus only on items assigned to me or where I am the author.",
         todayWork: "ดึงข้อมูลงานที่มีสถานะเป็น Active หรือ Pull Request ทั้งหมดที่สร้างหรืออัปเดตในวันนี้ใน Azure DevOps",
         weekWork: "Summarize all my activities in 'Banana Pastel' from the past week. List everything I have worked on, including status changes and any completed items.",
-        leavePlan: "ฉันสามารถลางานวันที่ 16 มกราคม 2569 ได้ใหม จาก banana office",
+        leavePlan: "ฉันสามารถลางานวันที่ 22 มกราคม 2026 ได้ใหม จาก banana office",
         timeNow: "ตอนนี้เวลากี่โมงแล้ว"
     };
 
@@ -40,15 +45,22 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         this.sendMessage();
     }
 
+    handleAction(action: string, title: string) {
+        this.currentActionTitle = title;
+        this.currentView = 'results';
+        this.messages = [];
+        this.usePrompt(action);
+    }
+
+    goBack() {
+        this.currentView = 'welcome';
+        this.currentActionTitle = '';
+        this.messages = [];
+    }
+
     ngOnInit() {
         this.userName = this.authService.getUserName();
-        // Add welcome message
-        this.messages.push({
-            text: `Hello ${this.userName}! How can I help you today?
-            <ul>`,
-            sender: 'bot',
-            timestamp: new Date()
-        });
+        this.loadTokens();
     }
 
     ngAfterViewChecked() {
@@ -160,5 +172,29 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
 
         return html;
+    }
+
+    async loadTokens() {
+        try {
+            this.azureToken = await this.authService.getAzureToken().toPromise();
+            this.m365Token = await this.authService.getM365Token().toPromise();
+        } catch (error) {
+            console.error('Error loading tokens:', error);
+        }
+    }
+
+    toggleTokenPanel() {
+        this.showTokenPanel = !this.showTokenPanel;
+        if (this.showTokenPanel) {
+            this.loadTokens();
+        }
+    }
+
+    copyToken(token: string, tokenType: string) {
+        navigator.clipboard.writeText(token).then(() => {
+            alert(`${tokenType} token copied!`);
+        }).catch(err => {
+            console.error('Failed to copy:', err);
+        });
     }
 }

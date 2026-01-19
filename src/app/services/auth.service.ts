@@ -14,17 +14,6 @@ export class AuthService {
 
     constructor(private authService: MsalService) {
         this.checkAccount();
-
-        // Subscribe to account changes
-        this.authService.handleRedirectObservable().subscribe({
-            next: (result: AuthenticationResult) => {
-                if (result) {
-                    this.authService.instance.setActiveAccount(result.account);
-                    this.checkAccount();
-                }
-            },
-            error: (error) => console.error(error)
-        });
     }
 
     checkAccount() {
@@ -33,14 +22,20 @@ export class AuthService {
     }
 
     login() {
-        this.authService.loginRedirect({
+        this.authService.loginPopup({
             scopes: environment.apiConfig.m365_scopes
+        }).subscribe({
+            next: (result: AuthenticationResult) => {
+                this.authService.instance.setActiveAccount(result.account);
+                this.checkAccount();
+            },
+            error: (error) => console.error('Login error:', error)
         });
     }
 
     logout() {
-        this.authService.logoutRedirect({
-            postLogoutRedirectUri: "/"
+        this.authService.logoutPopup({
+            mainWindowRedirectUri: "/"
         });
         this.loggedIn.next(false);
     }
