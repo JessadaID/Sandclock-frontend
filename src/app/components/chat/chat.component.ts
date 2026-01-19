@@ -1,6 +1,7 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
 import { ChatService } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
+import { ChangeDetectorRef } from '@angular/core';
 
 interface Message {
     text: string;
@@ -21,13 +22,30 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     isLoading: boolean = false;
     userName: string = '';
 
-    constructor(private chatService: ChatService, private authService: AuthService) { }
+    constructor(
+        private chatService: ChatService,
+        private authService: AuthService,
+        private cdr: ChangeDetectorRef) { }
+
+    predefinedPrompts = {
+        // todayWork: "Fetch all my active work items (including Tasks, and Bugs) and Pull Requests that were created or updated today across all projects in Azure DevOps. Focus only on items assigned to me or where I am the author.",
+        todayWork: "ดึงข้อมูลงานที่มีสถานะเป็น Active หรือ Pull Request ทั้งหมดที่สร้างหรืออัปเดตในวันนี้ใน Azure DevOps",
+        weekWork: "Summarize all my activities in 'Banana Pastel' from the past week. List everything I have worked on, including status changes and any completed items.",
+        leavePlan: "ฉันสามารถลางานวันที่ 16 มกราคม 2569 ได้ใหม จาก banana office",
+        timeNow: "ตอนนี้เวลากี่โมงแล้ว"
+    };
+
+    usePrompt(promptType: string) {
+        this.newMessage = (this.predefinedPrompts as any)[promptType] || '';
+        this.sendMessage();
+    }
 
     ngOnInit() {
         this.userName = this.authService.getUserName();
         // Add welcome message
         this.messages.push({
-            text: `Hello ${this.userName}! How can I help you today?`,
+            text: `Hello ${this.userName}! How can I help you today?
+            <ul>`,
             sender: 'bot',
             timestamp: new Date()
         });
@@ -44,7 +62,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     }
 
     async sendMessage() {
-        if (!this.newMessage.trim()) return;
+        if (!this.newMessage.trim()) {
+            return;
+        }
 
         const userMsg = this.newMessage;
         this.messages.push({
@@ -56,73 +76,60 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         this.newMessage = '';
         this.isLoading = true;
 
+        // เพิ่ม bot message เปล่า
+        this.messages.push({
+            text: '',
+            sender: 'bot',
+            timestamp: new Date()
+        });
+
+        const botMessageIndex = this.messages.length - 1;
+
         try {
             const reader = await this.chatService.sendMessageStream(userMsg);
             const decoder = new TextDecoder();
-
-            this.messages.push({
-                text: '',
-                sender: 'bot',
-                timestamp: new Date()
-            });
-
-            const botMessageIndex = this.messages.length - 1;
             let buffer = '';
 
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) break;
+
+                if (done) {
+                    break;
+                }
 
                 const chunk = decoder.decode(value, { stream: true });
                 buffer += chunk;
-                const lines = buffer.split('\n');
 
-                // Keep the last partial line in the buffer
+                const lines = buffer.split('\n');
                 buffer = lines.pop() || '';
 
                 for (const line of lines) {
-                    const trimmedLine = line.trim();
-                    if (!trimmedLine || !trimmedLine.startsWith('data: ')) continue;
+                    if (!line.trim() || !line.startsWith('data: ')) continue;
 
-                    const dataStr = trimmedLine.slice(6); // Remove 'data: ' prefix
-                    if (dataStr === '[DONE]') continue;
+                    const dataStr = line.substring(6).trim();
 
-                    let data: any;
-                    try {
-                        data = JSON.parse(dataStr);
-                    } catch (e) {
-                        // Fallback: Try to parse Ruby Hash string format using regex
-                        // Pattern: Looks for text: "..." inside the string
-                        if (dataStr.includes(':content_block_delta') && dataStr.includes(':text_delta')) {
-                            const match = dataStr.match(/text:\s*"((?:[^"\\]|\\.)*)"/);
-                            if (match) {
-                                try {
-                                    // Use JSON.parse to handle unescaping of the string content
-                                    const textContent = JSON.parse(`"${match[1]}"`);
-                                    data = {
-                                        type: 'content_block_delta',
-                                        delta: {
-                                            type: 'text_delta',
-                                            text: textContent
-                                        }
-                                    };
-                                } catch (innerError) {
-                                    console.warn('Failed to parse extracted text:', innerError);
-                                }
-                            }
-                        }
-
-                        if (!data) {
-                            console.log('Failed line:', dataStr);
-                            console.warn('Error parsing stream data:', e);
-                            continue;
-                        }
+                    if (dataStr === '[DONE]') {
+                        console.log('Received [DONE] signal');
+                        continue;
                     }
 
-                    // Handle text delta
-                    if (data.type === 'content_block_delta' && data.delta && data.delta.type === 'text_delta') {
-                        this.messages[botMessageIndex].text += data.delta.text;
-                        this.scrollToBottom();
+                    try {
+                        const data = JSON.parse(dataStr);
+
+                        // Handle different event types
+                        if (data.type === 'content_block_delta') {
+                            if (data.delta && data.delta.text) {
+                                this.messages[botMessageIndex].text += data.delta.text;
+                                this.cdr.detectChanges();
+                            }
+                        } else if (data.type === 'error') {
+                            console.error('Stream error:', data.error);
+                            this.messages[botMessageIndex].text += '\n\n❌ Error: ' + data.error;
+                            this.cdr.detectChanges();
+                        }
+
+                    } catch (parseError) {
+                        console.error('Failed to parse JSON:', dataStr, parseError);
                     }
                 }
             }
@@ -130,17 +137,28 @@ export class ChatComponent implements OnInit, AfterViewChecked {
             this.isLoading = false;
 
         } catch (error) {
+            console.error('❌ Error in sendMessage:', error);
             this.isLoading = false;
-            this.messages.push({
-                text: 'Sorry, I encountered an error communicating with the server.',
-                sender: 'bot',
-                timestamp: new Date()
-            });
-            console.error('Chat error:', error);
+
+            if (this.messages[botMessageIndex].text === '') {
+                this.messages[botMessageIndex].text = 'Sorry, I encountered an error communicating with the server.';
+            }
         }
     }
 
     logout() {
         this.authService.logout();
+    }
+
+    // Convert simple Markdown to HTML
+    parseMarkdown(text: string): string {
+        if (!text) return '';
+
+        let html = text;
+
+        // Convert **bold** to <strong>bold</strong>
+        html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        return html;
     }
 }

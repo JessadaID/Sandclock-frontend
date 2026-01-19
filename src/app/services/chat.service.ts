@@ -12,12 +12,14 @@ export class ChatService {
     constructor(private http: HttpClient, private authService: AuthService) { }
 
     async sendMessageStream(prompt: string): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-        const token = await this.authService.getToken().toPromise();
+        const azureToken = await this.authService.getAzureToken().toPromise();
+        const m365Token = await this.authService.getM365Token().toPromise();
         const response = await fetch(this.apiUrl, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'PAT': token
+                'Azure-Token': azureToken,
+                'M365-Token': m365Token
             },
             body: JSON.stringify({ prompt })
         });

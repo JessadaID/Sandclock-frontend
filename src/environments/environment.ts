@@ -16,7 +16,8 @@ export const environment = {
     }
   },
   apiConfig: {
-    scopes: ['499b84ac-1321-427f-aa17-267ca6975798/vso.work'], // Azure DevOps scope (GUID is the resource ID for Azure DevOps)
+    azure_scopes: ['https://app.vssps.visualstudio.com/vso.work'],
+    m365_scopes: ['User.Read'], // Azure DevOps scope (GUID is the resource ID for Azure DevOps)
     uri: 'https://felicia-unconvinced-ginger.ngrok-free.dev' // Replace with your API base URL
   }
 };

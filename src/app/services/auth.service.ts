@@ -34,7 +34,7 @@ export class AuthService {
 
     login() {
         this.authService.loginRedirect({
-            scopes: environment.apiConfig.scopes
+            scopes: environment.apiConfig.m365_scopes
         });
     }
 
@@ -44,8 +44,27 @@ export class AuthService {
         });
         this.loggedIn.next(false);
     }
+    getM365Token(): Observable<string> {
+        return new Observable<string>(observer => {
+            const account = this.authService.instance.getActiveAccount();
+            if (account) {
+                this.authService.acquireTokenSilent({
+                    account: account,
+                    scopes: environment.apiConfig.m365_scopes
+                }).subscribe({
+                    next: result => {
+                        observer.next(result.accessToken);
+                        observer.complete();
+                    },
+                    error: error => observer.error(error)
+                });
+            } else {
+                observer.error('No active account');
+            }
+        });
+    }
 
-    getToken(): Observable<string> {
+    getAzureToken(): Observable<string> {
         // You might need to implement silent token acquisition here if needed for interceptors
         // But MsalInterceptor handles this mostly automatically.
         // This is a placeholder if manual token retrieval is needed.
@@ -54,7 +73,7 @@ export class AuthService {
             if (account) {
                 this.authService.acquireTokenSilent({
                     account: account,
-                    scopes: environment.apiConfig.scopes
+                    scopes: environment.apiConfig.azure_scopes
                 }).subscribe({
                     next: result => {
                         observer.next(result.accessToken);

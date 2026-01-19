@@ -19,7 +19,7 @@
             <div *ngFor="let msg of messages"
                 [ngClass]="{'message-wrapper-user': msg.sender === 'user', 'message-wrapper-bot': msg.sender === 'bot'}">
                 <div class="message" [ngClass]="msg.sender">
-                    <div class="msg-content">{{ msg.text }}</div>
+                    <div class="msg-content" [innerHTML]="parseMarkdown(msg.text)"></div>
                     <div class="msg-time">{{ msg.timestamp | date:'shortTime' }}</div>
                 </div>
             </div>
@@ -31,6 +31,12 @@
         </div>
 
         <div class="input-area">
+            <div class="quick-actions">
+                <button class="prompt-btn" (click)="usePrompt('todayWork')">To day work</button>
+                <button class="prompt-btn" (click)="usePrompt('weekWork')">This week work</button>
+                <button class="prompt-btn" (click)="usePrompt('leavePlan')">Leave plan</button>
+                <button class="prompt-btn" (click)="usePrompt('timeNow')">Time now</button>
+            </div>
             <div class="input-wrapper">
                 <input [(ngModel)]="newMessage" (keyup.enter)="sendMessage()" placeholder="Type your message here..."
                     type="text" [disabled]="isLoading">

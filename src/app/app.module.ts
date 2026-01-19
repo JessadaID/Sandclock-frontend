@@ -39,12 +39,12 @@ const isIE = window.navigator.userAgent.indexOf('MSIE ') > -1 || window.navigato
     }), {
       interactionType: InteractionType.Redirect,
       authRequest: {
-        scopes: environment.apiConfig.scopes
+        scopes: environment.apiConfig.m365_scopes
       }
     }, {
       interactionType: InteractionType.Redirect,
       protectedResourceMap: new Map([
-        [environment.apiConfig.uri, environment.apiConfig.scopes]
+        [environment.apiConfig.uri, environment.apiConfig.m365_scopes]
       ])
     })
   ],
