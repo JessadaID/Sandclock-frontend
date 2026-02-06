@@ -46,6 +46,54 @@
         </div>
     </div>
 
+    <!-- Date Picker View -->
+    <div class="datepicker-view" *ngIf="currentView === 'datepicker'">
+        <div class="datepicker-content">
+            <h2 class="datepicker-title">Let's plan your time off.</h2>
+            <p class="datepicker-subtitle">Which day are you planning to take off?</p>
+
+            <div class="calendar-container">
+                <div class="calendar-header">
+                    <button class="nav-btn" (click)="previousMonth()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="15 18 9 12 15 6"></polyline>
+                        </svg>
+                    </button>
+
+                    <div class="month-year-selectors">
+                        <select class="month-select" [(ngModel)]="currentMonth" (change)="generateCalendar()">
+                            <option *ngFor="let month of monthNames; let i = index" [value]="i">{{ month }}</option>
+                        </select>
+                        <select class="year-select" [(ngModel)]="currentYear" (change)="generateCalendar()">
+                            <option *ngFor="let year of [2024, 2025, 2026, 2027]" [value]="year">{{ year }}</option>
+                        </select>
+                    </div>
+
+                    <button class="nav-btn" (click)="nextMonth()">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <polyline points="9 18 15 12 9 6"></polyline>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="calendar-grid">
+                    <div class="day-name" *ngFor="let dayName of dayNames">{{ dayName }}</div>
+                    <div *ngFor="let day of calendarDays" class="calendar-day" [class.empty]="day === null"
+                        [class.selected]="isSelectedDate(day)" (click)="selectDate(day)">
+                        {{ day }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="datepicker-actions">
+                <button class="confirm-btn" (click)="confirmDate()">Confirm date</button>
+                <button class="back-btn-datepicker" (click)="goBackFromDatePicker()">Back</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Results View -->
     <div class="results-view" *ngIf="currentView === 'results'">
         <div class="results-header">
@@ -93,6 +141,30 @@
                 <div class="token-display">
                     <input type="text" [value]="m365Token" readonly>
                     <button (click)="copyToken(m365Token, 'M365')" class="copy-btn">Copy</button>
+                </div>
+            </div>
+
+            <div class="token-item">
+                <label>Pastel Auth Token:</label>
+                <div class="token-display">
+                    <input type="text" [value]="pastelAuthToken" readonly>
+                    <button (click)="copyToken(pastelAuthToken, 'Pastel')" class="copy-btn">Copy</button>
+                </div>
+            </div>
+
+            <div class="token-item">
+                <label>Pastel Email:</label>
+                <div class="token-display">
+                    <input type="text" [value]="pastelEmail" readonly>
+                    <button (click)="copyToken(pastelEmail, 'Email')" class="copy-btn">Copy</button>
+                </div>
+            </div>
+
+            <div class="token-item">
+                <label>Machine Name:</label>
+                <div class="token-display">
+                    <input type="text" [value]="machineName" readonly>
+                    <button (click)="copyToken(machineName, 'Machine Name')" class="copy-btn">Copy</button>
                 </div>
             </div>
         </div>

@@ -1,6 +1,3 @@
-// This file can be replaced during build by using the `fileReplacements` array.
-// `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
-// The list of file replacements can be found in `angular.json`.
 
 export const environment = {
   production: false,
@@ -18,15 +15,7 @@ export const environment = {
   apiConfig: {
     azure_scopes: ['https://app.vssps.visualstudio.com/vso.work'],
     m365_scopes: ['User.Read'], // Azure DevOps scope (GUID is the resource ID for Azure DevOps)
-    uri: 'https://felicia-unconvinced-ginger.ngrok-free.dev' // Replace with your API base URL
+    uri: 'https://felicia-unconvinced-ginger.ngrok-free.dev', // Replace with your API base URL
+    bananaApiUrl: 'https://banana-staging.bananabreaking.com'
   }
 };
-
-/*
- * For easier debugging in development mode, you can import the following file
- * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
- *
- * This import should be commented out in production mode because it will have a negative impact
- * on performance if an error is thrown.
- */
-// import 'zone.js/dist/zone-error';  // Included with Angular CLI.

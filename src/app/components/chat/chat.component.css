@@ -6,7 +6,7 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', Oxygen, Ubuntu, Cantarell, sans-serif;
 }
 
 .app-container {
@@ -137,7 +137,180 @@ body {
     display: block;
 }
 
-/* Results View */
+/* Date Picker View */
+.datepicker-view {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    overflow-y: auto;
+    background: white;
+}
+
+.datepicker-content {
+    max-width: 450px;
+    width: 100%;
+}
+
+.datepicker-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 8px;
+}
+
+.datepicker-subtitle {
+    font-size: 16px;
+    color: #666;
+    margin-bottom: 30px;
+}
+
+.calendar-container {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+}
+
+.calendar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.nav-btn {
+    background: transparent;
+    border: none;
+    color: #FF8C42;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.2s;
+}
+
+.nav-btn:hover {
+    opacity: 0.7;
+}
+
+.month-year-selectors {
+    display: flex;
+    gap: 10px;
+}
+
+.month-select,
+.year-select {
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    background: white;
+    cursor: pointer;
+    color: #333;
+}
+
+.month-select:focus,
+.year-select:focus {
+    outline: none;
+    border-color: #FF8C42;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.day-name {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    padding: 8px 0;
+}
+
+.calendar-day {
+    aspect-ratio: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #333;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: white;
+}
+
+.calendar-day:not(.empty):hover {
+    background: #FFF5F0;
+    color: #FF8C42;
+}
+
+.calendar-day.empty {
+    cursor: default;
+}
+
+.calendar-day.selected {
+    background: #FF8C42;
+    color: white;
+    font-weight: 600;
+}
+
+.datepicker-actions {
+    margin-top: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.confirm-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #FF8C42 0%, #FF7028 100%);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.confirm-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 140, 66, 0.3);
+}
+
+.confirm-btn:active {
+    transform: translateY(0);
+}
+
+.back-btn-datepicker {
+    width: 100%;
+    padding: 14px;
+    background: white;
+    border: 2px solid #FF8C42;
+    border-radius: 8px;
+    color: #FF8C42;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.back-btn-datepicker:hover {
+    background: #FFF5F0;
+    transform: translateY(-1px);
+}
+
+.back-btn-datepicker:active {
+    transform: translateY(0);
+}
+
 .results-view {
     flex: 1;
     display: flex;

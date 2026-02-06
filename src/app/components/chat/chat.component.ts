@@ -1,5 +1,5 @@
 import { Component, OnInit, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
-import { ChatService } from '../../services/chat.service';
+import { ChatService, ServiceEndpoint } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ChangeDetectorRef } from '@angular/core';
 
@@ -21,11 +21,21 @@ export class ChatComponent implements OnInit, AfterViewChecked {
     newMessage: string = '';
     isLoading: boolean = false;
     userName: string = '';
-    currentView: 'welcome' | 'results' = 'welcome';
+    currentView: 'welcome' | 'results' | 'datepicker' = 'welcome';
     currentActionTitle: string = '';
+    currentEndpoint: ServiceEndpoint = 'summary_azure_tasks'; // Track which endpoint to use
     azureToken: string = '';
     m365Token: string = '';
     showTokenPanel: boolean = false;
+
+    // Date picker properties
+    selectedDate: Date | null = null;
+    currentMonth: number = new Date().getMonth();
+    currentYear: number = new Date().getFullYear();
+    calendarDays: (number | null)[] = [];
+    monthNames: string[] = ['January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December'];
+    dayNames: string[] = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
     constructor(
         private chatService: ChatService,
@@ -40,6 +50,11 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         timeNow: "ตอนนี้เวลากี่โมงแล้ว"
     };
 
+    pastelAuthToken: string = '';
+    pastelEmail: string = '';
+    machineName: string = '';
+
+
     usePrompt(promptType: string) {
         this.newMessage = (this.predefinedPrompts as any)[promptType] || '';
         this.sendMessage();
@@ -47,15 +62,122 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
     handleAction(action: string, title: string) {
         this.currentActionTitle = title;
-        this.currentView = 'results';
-        this.messages = [];
-        this.usePrompt(action);
+
+        // Set the appropriate endpoint based on action
+        switch (action) {
+            case 'todayWork':
+                this.currentEndpoint = 'summary_azure_tasks';
+                break;
+            case 'weekWork':
+                this.currentEndpoint = 'summary_lastweek_tasks';
+                break;
+            case 'leavePlan':
+                this.currentEndpoint = 'check_leave_plan';
+                break;
+            default:
+                this.currentEndpoint = 'summary_azure_tasks';
+        }
+
+        // If action is leavePlan, show date picker first
+        if (action === 'leavePlan') {
+            this.currentView = 'datepicker';
+            this.generateCalendar();
+        } else {
+            this.currentView = 'results';
+            this.messages = [];
+            this.usePrompt(action);
+        }
     }
 
     goBack() {
         this.currentView = 'welcome';
         this.currentActionTitle = '';
         this.messages = [];
+        this.selectedDate = null;
+    }
+
+    goBackFromDatePicker() {
+        this.currentView = 'welcome';
+        this.currentActionTitle = '';
+        this.selectedDate = null;
+    }
+
+    generateCalendar() {
+        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+        const daysInMonth = lastDay.getDate();
+
+        // Get the day of week for the first day (0 = Sunday, 1 = Monday, etc.)
+        let firstDayOfWeek = firstDay.getDay();
+        // Convert to Monday = 0, Sunday = 6
+        firstDayOfWeek = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+        this.calendarDays = [];
+
+        // Add empty slots for days before the first day of the month
+        for (let i = 0; i < firstDayOfWeek; i++) {
+            this.calendarDays.push(null);
+        }
+
+        // Add all days of the month
+        for (let day = 1; day <= daysInMonth; day++) {
+            this.calendarDays.push(day);
+        }
+    }
+
+    previousMonth() {
+        if (this.currentMonth === 0) {
+            this.currentMonth = 11;
+            this.currentYear--;
+        } else {
+            this.currentMonth--;
+        }
+        this.generateCalendar();
+    }
+
+    nextMonth() {
+        if (this.currentMonth === 11) {
+            this.currentMonth = 0;
+            this.currentYear++;
+        } else {
+            this.currentMonth++;
+        }
+        this.generateCalendar();
+    }
+
+    selectDate(day: number | null) {
+        if (day === null) return;
+
+        this.selectedDate = new Date(this.currentYear, this.currentMonth, day);
+    }
+
+    isSelectedDate(day: number | null): boolean {
+        if (!day || !this.selectedDate) return false;
+
+        return this.selectedDate.getDate() === day &&
+            this.selectedDate.getMonth() === this.currentMonth &&
+            this.selectedDate.getFullYear() === this.currentYear;
+    }
+
+    confirmDate() {
+        if (!this.selectedDate) {
+            alert('กรุณาเลือกวันที่ต้องการลา');
+            return;
+        }
+
+        // Format date in YYYY-MM-DD for backend compatibility
+        const year = this.selectedDate.getFullYear();
+        const month = (this.selectedDate.getMonth() + 1).toString().padStart(2, '0');
+        const day = this.selectedDate.getDate().toString().padStart(2, '0');
+        const dateStr = `${year}-${month}-${day}`;
+
+        // Update the prompt with selected date
+        this.predefinedPrompts.leavePlan = dateStr;
+
+        // Switch to results view and send the message
+        this.currentView = 'results';
+        this.messages = [];
+        this.usePrompt('leavePlan');
     }
 
     ngOnInit() {
@@ -98,7 +220,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         const botMessageIndex = this.messages.length - 1;
 
         try {
-            const reader = await this.chatService.sendMessageStream(userMsg);
+            const reader = await this.chatService.sendMessageStream(userMsg, this.currentEndpoint);
             const decoder = new TextDecoder();
             let buffer = '';
 
@@ -178,6 +300,9 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         try {
             this.azureToken = await this.authService.getAzureToken().toPromise();
             this.m365Token = await this.authService.getM365Token().toPromise();
+            this.pastelAuthToken = this.authService.getPastelAuthToken();
+            this.pastelEmail = this.authService.getPastelEmail();
+            this.machineName = this.authService.getMachineName();
         } catch (error) {
             console.error('Error loading tokens:', error);
         }
