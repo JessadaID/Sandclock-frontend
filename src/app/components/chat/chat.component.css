@@ -359,6 +359,34 @@ body {
     color: #FF8C42;
 }
 
+.message-text hr {
+    border: none;
+    border-top: 2px solid #FF8C42;
+    margin: 12px 0;
+    opacity: 0.4;
+}
+
+.message-text ul {
+    list-style: none;
+    padding-left: 16px;
+    margin: 8px 0;
+}
+
+.message-text ul li {
+    position: relative;
+    padding-left: 16px;
+    margin-bottom: 4px;
+    line-height: 1.6;
+}
+
+.message-text ul li::before {
+    content: '•';
+    color: #FF8C42;
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+}
+
 .loading-indicator {
     display: flex;
     justify-content: center;
@@ -535,4 +563,66 @@ body {
 
 .copy-btn:active {
     transform: scale(0.98);
+}
+
+/* Tool Use Block Styles */
+.tool-use-block {
+    margin: 12px 0;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f8f9fa;
+    font-family: 'Roboto', sans-serif;
+    font-size: 13px;
+}
+
+.tool-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 12px;
+    cursor: pointer;
+    background-color: #f0f2f5;
+    transition: background-color 0.2s;
+    user-select: none;
+}
+
+.tool-header:hover {
+    background-color: #e4e6eb;
+}
+
+.tool-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.tool-name {
+    font-weight: 600;
+    color: #444;
+    flex: 1;
+}
+
+.toggle-icon {
+    color: #666;
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.tool-use-block.open .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.tool-content {
+    padding: 12px;
+    background-color: #fafafa;
+    border-top: 1px solid #e0e0e0;
+    overflow-x: auto;
+}
+
+.tool-content pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    font-size: 12px;
+    color: #333;
 }

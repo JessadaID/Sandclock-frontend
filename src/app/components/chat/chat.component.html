@@ -102,7 +102,25 @@
 
         <div class="results-content" #scrollContainer>
             <div *ngFor="let msg of messages" class="message-item">
-                <div class="message-text" [innerHTML]="parseMarkdown(msg.text)"></div>
+                <ng-container *ngIf="msg.parts && msg.parts.length > 0; else legacyText">
+                    <ng-container *ngFor="let part of msg.parts">
+                        <div *ngIf="part.type === 'text'" class="message-text"
+                            [innerHTML]="parseMarkdown(part.content)"></div>
+                        <div *ngIf="part.type === 'tool_use'" class="tool-use-block" [class.open]="part.isOpen">
+                            <div class="tool-header" (click)="part.isOpen = !part.isOpen">
+                                <span class="tool-icon">🛠️</span>
+                                <span class="tool-name">Used tool: {{ part.toolName }}</span>
+                                <span class="toggle-icon">{{ part.isOpen ? '▼' : '▶' }}</span>
+                            </div>
+                            <div class="tool-content" *ngIf="part.isOpen">
+                                <pre>{{ part.content }}</pre>
+                            </div>
+                        </div>
+                    </ng-container>
+                </ng-container>
+                <ng-template #legacyText>
+                    <div class="message-text" [innerHTML]="parseMarkdown(msg.text)"></div>
+                </ng-template>
             </div>
 
             <div *ngIf="isLoading" class="loading-indicator">

@@ -3,8 +3,16 @@ import { ChatService, ServiceEndpoint } from '../../services/chat.service';
 import { AuthService } from '../../services/auth.service';
 import { ChangeDetectorRef } from '@angular/core';
 
-interface Message {
+export interface MessagePart {
+    type: 'text' | 'tool_use';
+    content: string;
+    toolName?: string;
+    isOpen?: boolean;
+}
+
+export interface Message {
     text: string;
+    parts: MessagePart[];
     sender: 'user' | 'bot';
     timestamp: Date;
 }
@@ -203,6 +211,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         const userMsg = this.newMessage;
         this.messages.push({
             text: userMsg,
+            parts: [{ type: 'text', content: userMsg }],
             sender: 'user',
             timestamp: new Date()
         });
@@ -213,6 +222,7 @@ export class ChatComponent implements OnInit, AfterViewChecked {
         // เพิ่ม bot message เปล่า
         this.messages.push({
             text: '',
+            parts: [],
             sender: 'bot',
             timestamp: new Date()
         });
@@ -249,16 +259,60 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
                     try {
                         const data = JSON.parse(dataStr);
+                        const currentMsg = this.messages[botMessageIndex];
+                        let lastPart = currentMsg.parts.length > 0 ? currentMsg.parts[currentMsg.parts.length - 1] : null;
 
-                        // Handle different event types
-                        if (data.type === 'content_block_delta') {
+                        // 1. Handle tool_use_start
+                        if (data.type === 'tool_use_start' || data.type === 'tool_use') {
+                            const toolPart: MessagePart = {
+                                type: 'tool_use',
+                                content: '',
+                                toolName: data.tool_name || data.name || data.tool || 'Unknown Tool',
+                                isOpen: false
+                            };
+                            currentMsg.parts.push(toolPart);
+                            this.cdr.detectChanges();
+                        }
+                        // 2. Handle tool input delta
+                        else if (data.type === 'tool_use_delta' || data.type === 'input_delta') {
+                            if (lastPart && lastPart.type === 'tool_use') {
+                                if (data.delta && data.delta.partial_json) {
+                                    lastPart.content += data.delta.partial_json;
+                                    this.cdr.detectChanges();
+                                } else if (data.input) {
+                                    lastPart.content += data.input;
+                                    this.cdr.detectChanges();
+                                }
+                            }
+                        }
+                        // 3. Handle tool_use_stop
+                        else if (data.type === 'tool_use_stop') {
+                            this.cdr.detectChanges();
+                        }
+                        // 4. Handle text content
+                        else if (data.type === 'content_block_delta') {
+                            if (!lastPart || lastPart.type !== 'text') {
+                                lastPart = { type: 'text', content: '' };
+                                currentMsg.parts.push(lastPart);
+                            }
                             if (data.delta && data.delta.text) {
-                                this.messages[botMessageIndex].text += data.delta.text;
+                                lastPart.content += data.delta.text;
+                                currentMsg.text += data.delta.text;
                                 this.cdr.detectChanges();
+                            }
+                        } else if (data.type === 'content_block_stop') {
+                            if (data.index === 0 || data.index === 1) {
+                                // newline logic if strictly needed, mostly handled by rendering
                             }
                         } else if (data.type === 'error') {
                             console.error('Stream error:', data.error);
-                            this.messages[botMessageIndex].text += '\n\n❌ Error: ' + data.error;
+                            if (!lastPart || lastPart.type !== 'text') {
+                                lastPart = { type: 'text', content: '' };
+                                currentMsg.parts.push(lastPart);
+                            }
+                            const errorMsg = '\n\n❌ Error: ' + data.error;
+                            lastPart.content += errorMsg;
+                            currentMsg.text += errorMsg;
                             this.cdr.detectChanges();
                         }
 
@@ -274,8 +328,13 @@ export class ChatComponent implements OnInit, AfterViewChecked {
             console.error('❌ Error in sendMessage:', error);
             this.isLoading = false;
 
-            if (this.messages[botMessageIndex].text === '') {
-                this.messages[botMessageIndex].text = 'Sorry, I encountered an error communicating with the server.';
+            if (this.messages[botMessageIndex].text === '' && this.messages[botMessageIndex].parts.length === 0) {
+                const errMsg = 'Sorry, I encountered an error communicating with the server.';
+                this.messages[botMessageIndex].text = errMsg;
+                this.messages[botMessageIndex].parts.push({
+                    type: 'text',
+                    content: errMsg
+                });
             }
         }
     }
@@ -292,6 +351,19 @@ export class ChatComponent implements OnInit, AfterViewChecked {
 
         // Convert **bold** to <strong>bold</strong>
         html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+        // Convert --- (standalone line) to <hr> horizontal rule
+        html = html.replace(/(^|\n)---(\n|$)/g, '$1<hr>$2');
+
+        // Convert lines starting with "- " into <ul><li> list items
+        // Group consecutive list lines into a single <ul>
+        html = html.replace(/(^|\n)(- .+(?:\n- .+)*)/g, (_match: string, prefix: string, listBlock: string) => {
+            const items = listBlock
+                .split('\n')
+                .map((line: string) => line.replace(/^- (.+)/, '<li>$1</li>'))
+                .join('');
+            return prefix + '<ul>' + items + '</ul>';
+        });
 
         return html;
     }
