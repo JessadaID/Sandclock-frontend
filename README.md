@@ -1,5 +1,6 @@
 # Frontend of Sandclock
 
+for test front-end to connect backend with mcp server
 ## step 1
 
 ```
